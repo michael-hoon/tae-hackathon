@@ -1,0 +1,50 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
+
+```{r}
+safety <- read.csv("train2.csv")
+str(safety)
+summary(safety)
+```
+
+```{r}
+library(randomForest)
+safety1 <- subset(safety, select=-c(Case,No,Task,Ch1,Ch2,Ch3,Ch4))
+```
+
+```{r}
+forest<-randomForest(as.factor(Choice)~., data=safety1)
+importance(forest)
+png(filename = "varimpt.png", width = 1200, height = 800)
+varImpPlot(forest)
+
+```
+
+```{r}
+safety3 <- subset(safety, select=c(Choice,Price1,Price2,Price3, age, ageind, agea,income,incomeind,incomea,miles, milesind,milesa,nighta, yearind,pparkind,segmentind,regionind,educind,BU3,BU2,BU1,NS1,NS2,NS3, Urbind,genderind))
+set.seed(123)
+```
+
+```{r}
+tuned<-tuneRF(subset(safety3, select=-c(Choice)),as.factor(safety3$Choice),stepFactor = 1.5,improve=0.001,trace = T,plot=T,doBest = TRUE)
+```
+
+```{r}
+#iterate through all the options presented by tuneRF
+for(i in list(2,3,4,5,7)){
+  forest <- randomForest(as.factor(Choice)~.,data=safety3,ntree=1500,mtry=i)
+  forest
+  plot(forest$err.rate[,1])
+}
+```
+```{r}
+forest1 <- randomForest(as.factor(Choice)~.,data=safety3,ntree=1500,mtry=3)
+forest1
+```
+

@@ -1,0 +1,62 @@
+---
+title: "Kaggle_fano"
+output: html_document
+date: "2023-07-21"
+---
+
+```{r}
+rm(list=ls())
+library(mlogit)
+safety <- read.csv("train2.csv")
+str(safety)
+summary(safety)
+head(safety)
+```
+
+
+```{r}
+attach(safety)
+table(Choice)
+```
+
+
+```{r}
+S <- dfidx(safety, shape="wide", choice="Choice", sep="", varying = c(4:83), idx = c("No", "Case"))
+head(S)
+str(S)
+```
+
+
+```{r}
+M <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price|segmentind+yearind+milesa+night+pparkind+genderind+agea+educind+regionind+Urbind+incomea, data=S)
+summary(M)
+```
+
+```{r}
+M1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price|incomeind+ppark+gender+educind+Urb+agea+segmentind+year+milesa+regionind+nighta, data=S)
+summary(M1)
+```
+
+```{r}
+M2 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price|segmentind+yearind+milesa+ppark+gender+agea+educind+regionind+Urb+incomea, data=S)
+summary(M2)
+```
+
+
+
+```{r}
+test <- read.csv("test1.csv")
+
+MrChoice <-sample(c(1,2,3,4),nrow(test),replace=TRUE, prob = c(0.25, 0.25, 0.25,0.25))
+test$Choice<-MrChoice
+table(test$Choice)
+S1 <- dfidx(test, shape="wide", choice="Choice", sep="", varying = c(4:83), idx = c("No", "Case"))
+head(S1)
+P1 <- predict(M2, newdata=S1)
+PredictedTest <- apply(P1,1,which.max)
+table(PredictedTest)
+```
+```{r}
+#write.csv(P1,file="submission_6.csv")
+```
+
