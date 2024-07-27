@@ -4,6 +4,7 @@ library(GGally)
 
 df_train <- read.csv("train2024.csv")
 df_test <- read.csv("test2024.csv")
+df_train$Choice <- ifelse(df_train$Ch1 == 1, 1, ifelse(df_train$Ch2 == 1, 2, ifelse(df_train$Ch3 == 1, 3, 4)))
 
 # SUMMARY
 str(df_train)
@@ -21,6 +22,100 @@ ggpairs(df_train,
         lower = list(continuous = custom_jitter),
         diag = list(continuous = wrap("densityDiag", alpha = 0.5))
 )
+
+# NEW
+df_train$Choice <- as.factor(df_train$Choice)
+choose_1 <- subset(df_train, df_train$Ch1==1)
+features <- c("LB1", "LB2", "LB3", "LB4", "Choice")
+df_selected <- choose_1[, features]
+ggpairs(df_selected, 
+        columns = 1:length(df_selected),
+        aes(color = Choice,
+            alpha=0.5))
+
+# NEW AGAIN
+features <- c("LB1", "LB2", "LB3", "LB4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+ggpairs(df_train,
+        columns = features,
+        upper = list(continuous = custom_jitter),
+        lower = list(continuous = custom_jitter),
+        diag = list(continuous = wrap("densityDiag", alpha = 0.5))
+)
+
+
+features <- c("AF1", "AF2", "AF3", "AF4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("BU1", "BU2", "BU3", "BU4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("BZ1", "BZ2", "BZ3", "BZ4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("CC1", "CC2", "CC3", "CC4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("FA1", "FA2", "FA3", "FA4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("FC1", "FC2", "FC3", "FC4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("FP1", "FP2", "FP3", "FP4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("GN1", "GN2", "GN3", "GN4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+features <- c("GN1", "GN2", "GN3", "GN4", "Ch1", "Ch2", "Ch3", "Ch4", "Choice")
+df_selected <- df_train[, features]
+ggpairs(df_selected, 
+        columns = 1:(length(df_selected)-1),
+        aes(color = "Choice",
+            alpha=0.5))
+
+
+
+
+
 
 
 
