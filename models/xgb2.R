@@ -74,7 +74,7 @@ cat("Average Training Log Loss:", average_train_logloss, "\n")
 cat("Average Validation Log Loss:", average_val_logloss, "\n")
 
 
-# PREDICTING AND TESTING 
+# PREDICTING AND TESTING FOR SUBMISSION
 df_test <- read.csv("test2024.csv")
 df_test$Choice <- sample(c(1, 2, 3, 4), nrow(df_test), replace = TRUE, prob = c(0.25, 0.25, 0.25, 0.25))
 subset_test <- subset(df_test,select=-c(Task,Ch1,Ch2,Ch3,Ch4,educ,gender,region,segment,ppark,night,miles,Case,CC4,GN4,NS4,BU4,FA4,LD4,BZ4,FC4,FP4,RP4,PP4,KA4,SC4,TS4,NV4,MA4,LB4,AF4,HU4,Price4,Urb,income,age))
