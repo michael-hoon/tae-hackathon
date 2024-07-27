@@ -87,4 +87,3 @@ xgb_preds <- as.data.frame(xgb_preds)
 colnames(xgb_preds) <- c("1","2","3","4")
 
 xgb_preds
-# write.csv(xgb_preds, "0727_submission1_xgb_kfcv.csv")
