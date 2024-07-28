@@ -1,0 +1,172 @@
+---
+title: "MNL_wiith_ASC"
+author: "kenneth"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(mlogit)
+
+# DATA EXTRACTION
+df_train <- read.csv("train2024.csv")
+df_test <- read.csv("test2024.csv")
+
+
+df_train$Choice <- ifelse(df_train$Ch1 == 1, 1, ifelse(df_train$Ch2 == 1, 2, ifelse(df_train$Ch3 == 1, 3, 4)))
+df_test$Choice <- sample(c(1, 2, 3, 4), nrow(df_test), replace = TRUE, prob = c(0.25, 0.25, 0.25, 0.25))
+
+# Split training data into train and validation
+set.seed(12)
+trainid <- sample(1:nrow(df_train), 0.8*nrow(df_train))
+valid <- -trainid
+train <- df_train[trainid,]
+validate <- df_train[valid,]
+
+# Actual target variables of train and validation sets
+train_probs <- train[,110:113]
+validate_probs <- validate[,110:113]
+
+# Format data
+S <- dfidx(train, shape="wide", choice="Choice", sep="", varying = c(4:83), idx = c("No", "Case"))
+
+T_valid <- dfidx(validate, shape="wide", choice="Choice", sep="", varying = c(4:83), idx = c("No", "Case"))
+
+test <- dfidx(df_test, shape="wide", choice="Choice", sep="", varying = c(4:83), idx = c("No", "Case"))
+```
+
+```{r}
+# MNL with only safety features
+M_onlys <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S)
+summary(M_onlys)
+# M_onlys$logLik/nrow(train)
+wtpCC <- -as.numeric(coef(M_onlys)["CC"]/coef(M_onlys)["Price"])
+wtpGN <- -as.numeric(coef(M_onlys)["GN"]/coef(M_onlys)["Price"])
+wtpNS <- -as.numeric(coef(M_onlys)["NS"]/coef(M_onlys)["Price"])
+wtpBU <- -as.numeric(coef(M_onlys)["BU"]/coef(M_onlys)["Price"])
+wtpFA <- -as.numeric(coef(M_onlys)["FA"]/coef(M_onlys)["Price"])
+wtpLD <- -as.numeric(coef(M_onlys)["LD"]/coef(M_onlys)["Price"])
+wtpBZ <- -as.numeric(coef(M_onlys)["BZ"]/coef(M_onlys)["Price"])
+wtpFC <- -as.numeric(coef(M_onlys)["FC"]/coef(M_onlys)["Price"])
+wtpFP <- -as.numeric(coef(M_onlys)["FP"]/coef(M_onlys)["Price"])
+wtpRP <- -as.numeric(coef(M_onlys)["RP"]/coef(M_onlys)["Price"])
+wtpPP <- -as.numeric(coef(M_onlys)["PP"]/coef(M_onlys)["Price"])
+wtpKA <- -as.numeric(coef(M_onlys)["KA"]/coef(M_onlys)["Price"])
+wtpSC <- -as.numeric(coef(M_onlys)["SC"]/coef(M_onlys)["Price"])
+wtpTS <- -as.numeric(coef(M_onlys)["TS"]/coef(M_onlys)["Price"])
+wtpNV <- -as.numeric(coef(M_onlys)["NV"]/coef(M_onlys)["Price"])
+wtpMA <- -as.numeric(coef(M_onlys)["MA"]/coef(M_onlys)["Price"])
+wtpLB <- -as.numeric(coef(M_onlys)["LB"]/coef(M_onlys)["Price"])
+wtpAF <- -as.numeric(coef(M_onlys)["AF"]/coef(M_onlys)["Price"])
+wtpHU <- -as.numeric(coef(M_onlys)["HU"]/coef(M_onlys)["Price"])
+wtpCC
+wtpGN
+wtpNS
+wtpBU
+wtpFA
+wtpLD
+wtpBZ
+wtpFC
+wtpFP
+wtpRP
+wtpPP
+wtpKA
+wtpSC
+wtpTS
+wtpNV
+wtpMA
+wtpLB
+wtpAF
+wtpHU
+
+```
+
+```{r}
+# Predicted probabilities of all safety features 
+P_vl <- predict(M_onlys, newdata=T_valid)
+
+# Mean log likelihood
+LL1 <- 0
+
+for (i in 1:nrow(P_vl)){
+    for (j in 1:ncol(P_vl)){
+      LL1 <- LL1 + validate_probs[i,j]*log(P_vl[i,j])
+    }
+}
+LL1
+LL1/nrow(P_vl)
+```
+
+```{r}
+# MNL with only significant safety features (excluded AF)
+M_2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FP+RP+PP+KA+SC+TS+NV+MA+LB+HU+Price-1, data=S)
+summary(M_2)
+M_2$logLik/nrow(train)
+```
+
+```{r}
+# Predicted probabilities of all significant safety features 
+P_vl_M2 <- predict(M_2, newdata=T_valid)
+
+LL2 <- 0
+# Mean log likelihood
+for (i in 1:nrow(P_vl_M2)){
+    for (j in 1:ncol(P_vl_M2)){
+      LL2 <- LL2 + validate_probs[i,j]*log(P_vl_M2[i,j])
+    }
+}
+LL2
+LL2/nrow(P_vl_M2)
+```
+
+```{r}
+# MNL with safety and human features
+M_sh <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1 | segmentind+yearind+milesind+nightind+pparkind+genderind+ageind+educind+Urbind+incomeind, data=S)
+summary(M_sh)
+M_sh$logLik/nrow(train)
+```
+
+```{r}
+# Predicted probabilities of MNL with all safety and human features
+P_vl_Msh <- predict(M_sh, newdata=T_valid)
+
+# Mean log likelihood
+LL3 <- 0
+
+for (i in 1:nrow(P_vl_Msh)){
+    for (j in 1:ncol(P_vl_Msh)){
+      LL3 <- LL3 + validate_probs[i,j]*log(P_vl_Msh[i,j])
+    }
+}
+LL3
+LL3/nrow(P_vl)
+```
+
+```{r}
+# MNL with only significant features (Removed CC, segmentind, educind, nightind)
+M_ASC <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1 | yearind+milesind+pparkind+genderind+ageind+Urbind+incomeind, data=S)
+summary(M_ASC)
+M_ASC$logLik/nrow(train)
+
+```
+
+```{r}
+# Predicted probabilities of MNL with all safety and human features
+P_vl_ASC <- predict(M_ASC, newdata=T_valid)
+
+# Mean log likelihood
+LL4 <- 0
+
+for (i in 1:nrow(P_vl_ASC)){
+    for (j in 1:ncol(P_vl_ASC)){
+      LL4 <- LL4 + validate_probs[i,j]*log(P_vl_ASC[i,j])
+    }
+}
+LL4
+LL4/nrow(P_vl_ASC)
+```
+
+```{r}
+MNL_ASC_probs <- predict(M_ASC, newdata = test)
+# write.csv(MNL_ASC_probs, "/Users/kennethwong/Documents/Term5_TAE/competition/to_submit.csv", row.names=FALSE)
+```
