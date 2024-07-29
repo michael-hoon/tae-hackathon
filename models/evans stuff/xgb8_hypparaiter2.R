@@ -104,7 +104,9 @@
     cat("Best Average Overfitting:", final_average_overfitting, "\n") 
     cat("With eta = ",eta_best, "and nrounds = ", nrounds_best, "\n")
     
-    #BEST ETA = 0.6, NROUNDS = 125
+    # BEST ETA = 0.6, NROUNDS = 125
+    # OR ETA = 0.5, NROUNDS = 100
+    # DEPENDS ON SEED
     
     # # PREDICTING AND TESTING 
     df_test <- read.csv("test2024.csv")
