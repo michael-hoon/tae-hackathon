@@ -116,7 +116,9 @@ cat("and nrounds = ", nrounds_best, "\n")
 cat("and maxdepth = ", maxdepth_best, "\n") 
 cat("and subsample = ", subsample_best, "\n") 
 
-#BEST ETA = 0.05, NROUNDS = 100, MAXDEPTH = 4, SUBSAMPLE = 1
+# BEST ETA = 0.07, NROUNDS = 150, MAXDEPTH = 6, SUBSAMPLE = 1
+# OR BEST ETA = 0.05, NROUNDS = 100, MAXDEPTH = 5, SUBSAMPLE = 1
+# DEPENDS ON SEED
 
 # # PREDICTING AND TESTING 
 df_test <- read.csv("test2024.csv")
