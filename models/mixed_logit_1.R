@@ -13,9 +13,18 @@ set.seed(12)
 split <- sample(1:nrow(safety), 0.8*nrow(safety))
 train <- safety[split,] # actual train 80%
 test <- safety[-split,] # actually this is validation set 20%
-choice <- subset(safety, select = c(Ch1,Ch2,Ch3,Ch4))[-split,] # this is y_ij for loglos
+train_choice <- subset(safety, select = c(Ch1,Ch2,Ch3,Ch4))[split,]
+val_choice <- subset(safety, select = c(Ch1,Ch2,Ch3,Ch4))[-split,] # this is y_ij for logloss
 
-# MODEL TRAINING # 1 
+# DATA SPLITTING # 2
+train <- subset(safety, Task <= 12)
+test <- subset(safety, Task > 12)
+train_choice <- subset(train, select = c(Ch1,Ch2,Ch3,Ch4)) 
+val_choice <- subset(test, select = c(Ch1,Ch2,Ch3,Ch4)) # this is y_ij for logloss
+
+# ========================
+#    MODEL TRAINING # 1 
+# ========================
 library(mlogit)
 S_train <- dfidx(subset(train), shape="wide", choice="Choice", varying =c(4:83), sep="",idx = list(c("No", "Case")))
 
@@ -24,8 +33,23 @@ M1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Pri
                     SC='n',TS='n',NV='n',MA='n',LB='n',AF='n',HU='n',Price='n'),
              panel = TRUE, print.level=TRUE)
 summary(M1)
+M1_train_logloss <- -summary(M1)$logLik / nrow(S_train)
+M1_train_logloss # 0.2575982
 
-# M2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train,
+# df2 <- train 
+# features <- c('CC1', 'GN1', 'NS1', 'BU1', 'FA1', 'LD1', 'BZ1', 'FC1', 'FP1', 'RP1', 
+#               'PP1', 'KA1', 'SC1', 'TS1', 'NV1', 'MA1', 'LB1', 'AF1', 'HU1', 'Price1', 
+#               'CC2', 'GN2', 'NS2', 'BU2', 'FA2', 'LD2', 'BZ2', 'FC2', 'FP2', 'RP2', 
+#               'PP2', 'KA2', 'SC2', 'TS2', 'NV2', 'MA2', 'LB2', 'AF2', 'HU2', 'Price2', 
+#               'CC3', 'GN3', 'NS3', 'BU3', 'FA3', 'LD3', 'BZ3', 'FC3', 'FP3', 'RP3', 
+#               'PP3', 'KA3', 'SC3', 'TS3', 'NV3', 'MA3', 'LB3', 'AF3', 'HU3', 'Price3')
+# df2 <- df2 %>% mutate(across(all_of(features), ~replace(., . == 0, 0.1))) 
+# # since i am trying lognormal, the values of the variables must not be 0. 
+# # hence we replace 0 with a small number 
+# # it did NOT work out
+# S_train_2 <- dfidx(subset(df2), shape="wide", choice="Choice", varying =c(4:83), sep="",idx = list(c("No", "Case")))
+# 
+# M2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train_2,
 #              rpar=c(CC='ln', GN='ln', NS='ln', BU='ln',FA='ln',LD='ln',BZ='ln',FC='ln',FP='ln',RP='ln',PP='ln',KA='ln',
 #                     SC='ln',TS='ln',NV='ln',MA='ln',LB='ln',AF='ln',HU='ln',Price='ln'),
 #              panel = TRUE, print.level=TRUE)
@@ -36,88 +60,86 @@ M3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Pri
                     SC='t',TS='t',NV='t',MA='t',LB='t',AF='t',HU='t',Price='t'), 
              panel = TRUE, print.level=TRUE)
 summary(M3)
+M3_train_logloss <- -summary(M3)$logLik / nrow(S_train)
+M3_train_logloss # 0.2589319 
 
 M4 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
              rpar=c(CC='u', GN='u', NS='u', BU='u',FA='u',LD='u',BZ='u',FC='u',FP='u',RP='u',PP='u',KA='u',
                     SC='u',TS='u',NV='u',MA='u',LB='u',AF='u',HU='u',Price='u'), 
              panel = TRUE, print.level=TRUE)
 summary(M4)
+M4_train_logloss <- -summary(M4)$logLik / nrow(S_train)
+M4_train_logloss # 0.2595637 
 
+# ========================
+#     MODEL TESTING # 1
+# ========================
+T1 <- predict(M1, newdata=S_train) # train predictions
+T3 <- predict(M3, newdata=S_train)
+T4 <- predict(M4, newdata=S_train)
 
-# MODEL TESTING # 1
 S_test <- dfidx(subset(test), shape="wide", choice="Choice", sep="", varying = c(4:83), idx = list(c("No", "Case")))
-P1 <- predict(M1, newdata=S_test)
-# P2 <- predict(M2, newdata=S_test)
+P1 <- predict(M1, newdata=S_test) # validation predictions
 P3 <- predict(M3, newdata=S_test)
 P4 <- predict(M4, newdata=S_test)
-# PredictedChoice <- apply(P,1,which.max)
 
-validation_logloss <- function(P){
+compute_logloss <- function(P, choice){
+    # P: predicted choices
+    # choice: actual choices
     logloss <- 0
-    for (i in 1:nrow(choice)) {
+    for (i in 1:(nrow(choice))) {
         logloss <- logloss + choice$Ch1[i]*log(P[i,1]) + choice$Ch2[i]*log(P[i,2]) + choice$Ch3[i]*log(P[i,3]) + choice$Ch4[i]*log(P[i,4])
     }
     logloss <- logloss / nrow(choice)
     logloss <- -1 * logloss
     logloss
 }
-logloss_M1 <- validation_logloss(P1)
-# logloss_M2 <- validation_logloss(P2)
-logloss_M3 <- validation_logloss(P3)
-logloss_M4 <- validation_logloss(P4)
-logloss_M1
-logloss_M3
-logloss_M4
+
+M1_train_logloss <- compute_logloss(T1, train_choice)
+M3_train_logloss <- compute_logloss(T3, train_choice)
+M4_train_logloss <- compute_logloss(T4, train_choice)
+M1_train_logloss 
+M3_train_logloss 
+M4_train_logloss 
+
+M1_val_logloss <- compute_logloss(P1, val_choice)
+M3_val_logloss <- compute_logloss(P3, val_choice)
+M4_val_logloss <- compute_logloss(P4, val_choice)
+M1_val_logloss
+M3_val_logloss
+M4_val_logloss
 
 
+# ========================
+#     MODEL ANALYSIS # 1
+# ========================
+summary(M1)
 
-
-# RANDOM TASTE
-library(ggplot2)
-features <- c("CC", "GN", "NS", "BU", "FA", "LD", "BZ", "FC", "FP", "RP", "PP", "KA", "SC", "TS", "NV", "MA", "LB", "AF", "HU", "Price")
-
-
-mean_price <- random_params["price", "Estimate"]
-sd_price <- random_params["price", "Std. Error"]
-
-# Generate random samples from the normal distribution
-set.seed(123)
-price_samples <- rnorm(1000, mean = mean_price, sd = sd_price)
-
-# Plot the distribution
-ggplot(data.frame(price_samples), aes(x = price_samples)) +
-    geom_histogram(aes(y = ..density..), bins = 30, color = "black", fill = "lightblue") +
-    geom_density(color = "red") +
-    labs(title = "Distribution of Random Coefficient for Price", x = "Price Coefficient", y = "Density")
-
-# PLOTTING ERRORS
-residual_1 <- test$Ch1 - P[,1]
-residual_2 <- test$Ch2 - P[,2]
-residual_3 <- test$Ch3 - P[,3]
-residual_4 <- test$Ch4 - P[,4]
-# residual_1 <- test$Ch1 - C1
-# residual_2 <- test$Ch2 - C2
-# residual_3 <- test$Ch3 - C3
-# residual_4 <- test$Ch4 - C4
-
-plot(residual_1)
-plot(residual_2)
-plot(residual_3)
-plot(residual_4)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# # Function to simulate the random parameters based on the estimated coefficients and their standard deviations
+# simulate_random_params <- function(coef_estimates, sd_estimates, n_sim = 1000) {
+#     valid_params <- names(sd_estimates)[!is.na(sd_estimates) & sd_estimates > 0]  # Only use valid standard deviations
+#     random_params <- sapply(valid_params, function(param) {
+#         rnorm(n_sim, mean = coef_estimates[param], sd = sd_estimates[param])
+#     })
+#     return(as.data.frame(random_params))
+# }
+# 
+# # Extract the estimated means (coefficients) and standard deviations
+# coef_estimates <- coef(M1)
+# sd_estimates <- coef(M1)[grepl("^sd\\.", names(coef(M1)))]
+# 
+# # Ensure the names match the parameter names (remove 'sd.' prefix)
+# names(sd_estimates) <- sub("^sd\\.", "", names(sd_estimates))
+# 
+# # Simulate the random parameters
+# random_params_sim <- simulate_random_params(coef_estimates, sd_estimates)
+# 
+# # Plot histograms of simulated random parameters
+# par(mfrow = c(2, 5))  # Adjust the layout as needed
+# 
+# for (param in names(random_params_sim)) {
+#     hist(random_params_sim[[param]], main = param, xlab = "Value", ylab = "Frequency", breaks = 30)
+# }
 
 
 
