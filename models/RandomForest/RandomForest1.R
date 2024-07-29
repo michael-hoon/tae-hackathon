@@ -29,7 +29,8 @@ best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1] #13
 
 # fitting model
 set.seed(seed)
-model <- randomForest(as.factor(Choice) ~ ., data = trainingSet, mtry=best.m, importance=TRUE, ntree = 2500) # Nathan might want to lower down to 1500 to try for our dataset size, 2500 too large
+model <- randomForest(as.factor(Choice) ~ ., data = trainingSet, mtry=best.m, importance=TRUE, ntree = 2500) 
+# Nathan might want to lower down to 1500 to try for our dataset size, 2500 too large
 
 # Results
 # importance(model)
@@ -58,10 +59,12 @@ imp %>%
 plot(x = 1:nrow(model$err.rate), y = model$err.rate[,1], type='l', ylab = "error", xlab = "trees") 
 
 # Predict
-pred <- predict(model, testSet, type="prob")
+test_pred <- predict(model, testSet, type="prob")
+train_pred <- predict(model, trainingSet, type="prob")
 
 # Change col names to Ch1, Ch2, Ch3, Ch4 to calculate logloss using function
-colnames(pred) <- c("Ch1", "Ch2", "Ch3", "Ch4")
+colnames(test_pred) <- c("Ch1", "Ch2", "Ch3", "Ch4")
+colnames(train_pred) <- c("Ch1", "Ch2", "Ch3", "Ch4")
 
 # calculate logloss
 logloss <- function(test_set, testpredict_df) {
@@ -80,7 +83,11 @@ logloss <- function(test_set, testpredict_df) {
 }
 
 # Calculate logloss
-loss <- logloss(testSet, as.data.frame(pred))
-loss #best result: 1.145054
-
+train_loss <- logloss(trainingSet, as.data.frame(train_pred))
+train_loss
+test_loss <- logloss(testSet, as.data.frame(test_pred))
+test_loss #best result: 1.145054 
 # the one i calculated running this without changes (took maybe 15mins): 1.145332
+
+
+
