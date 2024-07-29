@@ -1,5 +1,6 @@
 # DATA SPLITTING DONE USING TASK NUMBER
 setwd("C:\\SUTD\\40.016 TAE - The Analytics Edge\\000 - COMPETITION\\models")
+library(mlogit)
 
 safety <- read.csv("train2024.csv")
 safety$Choice <- ifelse(safety$Ch1 == 1, 1, ifelse(safety$Ch2 == 1, 2, ifelse(safety$Ch3 == 1, 3, 4)))
@@ -8,6 +9,9 @@ safety$Choice <- ifelse(safety$Ch1 == 1, 1, ifelse(safety$Ch2 == 1, 2, ifelse(sa
 train <- subset(safety, Task<=12)
 test <- subset(safety, Task>12)
 choice <- subset(test, select = c(Ch1,Ch2,Ch3,Ch4))
+train_choice <- subset(train, select = c(Ch1,Ch2,Ch3,Ch4)) 
+val_choice <- subset(test, select = c(Ch1,Ch2,Ch3,Ch4)) # this is y_ij for logloss
+
 
 # MODEL TRAINING
 S_train <- dfidx(subset(train), shape="wide", choice="Choice", varying =c(4:83), sep="",idx = list(c("No", "Case")))
@@ -36,7 +40,57 @@ M4 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Pri
              panel = TRUE, print.level=TRUE)
 summary(M4)
 
-# MODEL TESTING
+M5 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
+             rpar=c(BZ='n', FP='n', RP='n', NV='n'), panel = TRUE, print.level=TRUE)
+summary(M5)
+
+
+
+
+# ========================
+#     MODEL TESTING # 1
+# ========================
+T1 <- predict(M1, newdata=S_train) # train predictions
+T3 <- predict(M3, newdata=S_train)
+T4 <- predict(M4, newdata=S_train)
+T5 <- predict(M5, newdata=S_train)
+
+S_test <- dfidx(subset(test), shape="wide", choice="Choice", sep="", varying = c(4:83), idx = list(c("No", "Case")))
+P1 <- predict(M1, newdata=S_test) # validation predictions
+P3 <- predict(M3, newdata=S_test)
+P4 <- predict(M4, newdata=S_test)
+P5 <- predict(M5, newdata=S_test)
+
+compute_logloss <- function(P, choice){
+    # P: predicted choices
+    # choice: actual choices
+    logloss <- 0
+    for (i in 1:(nrow(choice))) {
+        logloss <- logloss + choice$Ch1[i]*log(P[i,1]) + choice$Ch2[i]*log(P[i,2]) + choice$Ch3[i]*log(P[i,3]) + choice$Ch4[i]*log(P[i,4])
+    }
+    logloss <- logloss / nrow(choice)
+    logloss <- -1 * logloss
+    logloss
+}
+
+M1_train_logloss <- compute_logloss(T1, train_choice)
+M1_train_logloss 
+M3_train_logloss <- compute_logloss(T3, train_choice)
+M3_train_logloss 
+M4_train_logloss <- compute_logloss(T4, train_choice)
+M4_train_logloss 
+M5_train_logloss <- compute_logloss(T5, train_choice)
+M5_train_logloss 
+
+M1_val_logloss <- compute_logloss(P1, val_choice)
+M1_val_logloss
+M3_val_logloss <- compute_logloss(P3, val_choice)
+M3_val_logloss
+M4_val_logloss <- compute_logloss(P4, val_choice)
+M4_val_logloss
+M5_val_logloss <- compute_logloss(P5, val_choice)
+M5_val_logloss
+
 S_test <- dfidx(subset(test), shape="wide", choice="Choice", sep="", varying = c(4:83), idx = list(c("No", "Case")))
 P1 <- predict(M1, newdata=S_test)
 # P2 <- predict(M2, newdata=S_test)
@@ -54,7 +108,6 @@ validation_logloss <- function(P){
   logloss
 }
 logloss_M1 <- validation_logloss(P1)
-# logloss_M2 <- validation_logloss(P2)
 logloss_M3 <- validation_logloss(P3)
 logloss_M4 <- validation_logloss(P4)
 logloss_M1
