@@ -17,9 +17,9 @@
     subset1_test <- subset(df_test, select = -c(Task, Ch1, Ch2, Ch3, Ch4, educ, gender, region, segment, ppark, night, miles, Case, No, CC4, GN4, NS4, BU4, FA4, LD4, BZ4, FC4, FP4, RP4, PP4, KA4, SC4, TS4, NV4, MA4, LB4, AF4, HU4, Price4, Urb, income, age))
     
     # K-FOLD CROSS VALIDATION MODEL TRAINING + PARAM SELECTION
-    # Trying to find the best eta and nrounds in range:
-    # FOUND BEST ETA = 0., BEST NROUNDS = 150
-    # TESTING MAX DEPTH, SUBSAMPLE
+        # Trying to find the best eta and nrounds in range:
+        # eta = 0.01 - 0.15, step = 0.1
+        # nrounds = 50 - 350, step = 25
     set.seed(12)
     k <- 5
     folds <- createFolds(subset1_train$Choice, k = k, list = TRUE)
@@ -30,8 +30,8 @@
     final_average_overfitting <- 10 
     final_scoring_metric <- final_average_val_logloss + (weight * final_average_overfitting) 
     
-    for (a in seq(100,200, by=25)) {
-      for (b in 4:8) {
+    for (a in seq(50,350, by=25)) {
+      for (b in 1:15) {
         
         xgb_params <- list(
           booster = "gbtree",
@@ -104,7 +104,7 @@
     cat("Best Average Overfitting:", final_average_overfitting, "\n") 
     cat("With eta = ",eta_best, "and nrounds = ", nrounds_best, "\n")
     
-    #BEST ETA = 0.7, NROUNDS = 150
+    #BEST ETA = 0.6, NROUNDS = 125
     
     # # PREDICTING AND TESTING 
     df_test <- read.csv("test2024.csv")
