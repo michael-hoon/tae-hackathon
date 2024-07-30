@@ -14,8 +14,6 @@ choice <- subset(test, select = c(Ch1,Ch2,Ch3,Ch4))
 train_choice <- subset(train, select = c(Ch1,Ch2,Ch3,Ch4)) 
 val_choice <- subset(test, select = c(Ch1,Ch2,Ch3,Ch4)) # this is y_ij for logloss
 
-
-
 # FUNCTION TO COMPUTE BOTH TRAINING AND VALIDATION LOGLOSS
 compute_logloss <- function(model, X_train, X_test, choice_train, choice_test, returnPreds=FALSE){
   # model         : your model 
@@ -59,205 +57,340 @@ compute_logloss <- function(model, X_train, X_test, choice_train, choice_test, r
 S_train <- dfidx(subset(train), shape="wide", choice="Choice", varying =c(4:83), sep="", idx = list(c("No", "Case")))
 S_test <- dfidx(subset(test), shape="wide", choice="Choice", varying = c(4:83), sep="", idx = list(c("No", "Case")))
 
-# Mark 3.1 
-M1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
-             rpar=c(BZ='ln', FP='ln', RP='ln', PP='ln', NV='ln'), panel = TRUE, print.level=TRUE)
-summary(M1)
-compute_logloss(M1, S_train, S_test, train_choice, val_choice)
-train_predictions <- predict(M1, newdata=S_train)
-test_predictions <- predict(M1, newdata=S_test)
 
-train_logloss <- 0
-for (i in 1:(nrow(train_predictions))) {
-    train_logloss <- train_logloss + (train_choice$Ch1[i]*log(train_predictions[i,1])  
-                                      + train_choice$Ch2[i]*log(train_predictions[i,2]) 
-                                      + train_choice$Ch3[i]*log(train_predictions[i,3]) 
-                                      + train_choice$Ch4[i]*log(train_predictions[i,4]))
-    if (i < 4000){
-        cat(i, "\n", train_logloss)
-    }
-}
-# 3518
-train_logloss <- -1 * (train_logloss / nrow(train_predictions))
+# ========================
+#        LOGNORMAL
+# ========================
+# without ASC
+M4.1.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
+             rpar=c(BZ='ln', FP='ln', RP='ln', PP='n', NV='ln'), panel = TRUE, print.level=TRUE)
+summary(M4.1.1)
+compute_logloss(M4.1.1, S_train, S_test, train_choice, val_choice)
 
-test_logloss <- 0
-for (i in 1:(nrow(test_predictions))) {
-    test_logloss <- test_logloss + (val_choice$Ch1[i]*log(test_predictions[i,1]) 
-                                    + val_choice$Ch2[i]*log(test_predictions[i,2]) 
-                                    + val_choice$Ch3[i]*log(test_predictions[i,3]) 
-                                    + val_choice$Ch4[i]*log(test_predictions[i,4]))
-}
-test_logloss <- -1 * (test_logloss / nrow(test_predictions))
+# with ASC [DOES NOT WORK]
+# M4.1.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
+#                rpar=c(BZ='ln', FP='ln', RP='ln', PP='n', NV='ln'), panel = TRUE, print.level=TRUE)
+# summary(M4.1.2)
+# compute_logloss(M4.1.2, S_train, S_test, train_choice, val_choice)
 
-write.csv(train_predictions, "mixedlogit//train_preds.csv")
-write.csv(test_predictions, "mixedlogit//test_preds.csv")
-write.csv(train_choice, "mixedlogit//train_choice.csv")
-write.csv(val_choice, "mixedlogit//test_choice.csv")
+# ========================
+#       TRIANGULAR
+# ========================
+# without ASC
+M4.2.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
+               rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.2.1)
+compute_logloss(M4.2.1, S_train, S_test, train_choice, val_choice)
 
+# with ASC
+M4.2.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
+               rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.2.2)
+compute_logloss(M4.2.2, S_train, S_test, train_choice, val_choice)
 
-# Mark 3.2
-M2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
-             rpar=c(BZ='ln', RP='ln', PP='ln'), panel = TRUE, print.level=TRUE)
-summary(M2)
-compute_logloss(M2, S_train, S_test, train_choice, val_choice)
-train_predictions <- predict(M2, newdata=S_train)
-test_predictions <- predict(M2, newdata=S_test)
+# without CC, with ASC
+M4.2.3 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
+                 rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.2.3)
+compute_logloss(M4.2.3, S_train, S_test, train_choice, val_choice)
 
-# Mark 3.3
-M3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
-             rpar=c(RP='ln', PP='ln'), panel = TRUE, print.level=TRUE)
-summary(M3)
-compute_logloss(M3, S_train, S_test, train_choice, val_choice)
-train_predictions <- predict(M3, newdata=S_train)
-test_predictions <- predict(M3, newdata=S_test)
+# ========================
+#         UNIFORM 
+# ========================
+# without ASC
+M4.3.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train,
+               rpar=c(BZ='u', FP='u', RP='u', PP='u', NV='u'), panel = TRUE, print.level=TRUE)
+summary(M4.3.1)
+compute_logloss(M4.3.1, S_train, S_test, train_choice, val_choice)
 
-# Mark 3.4
-M4 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1 | agea+incomea, data=S_train, 
-             rpar=c(RP='n', PP='n'), panel = TRUE, print.level=TRUE)
-summary(M4)
-compute_logloss(M4, S_train, S_test, train_choice, val_choice)
-# train: 1.216536 
-# validation: 1.166753
+# with ASC
+M4.3.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train,
+                 rpar=c(BZ='u', FP='u', RP='u', PP='u', NV='u'), panel = TRUE, print.level=TRUE)
+summary(M4.3.2)
+compute_logloss(M4.3.2, S_train, S_test, train_choice, val_choice)
 
-M4 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | agea+incomea, data=S_train, 
-             rpar=c(RP='n', PP='n'), panel = TRUE, print.level=TRUE)
-summary(M4)
-compute_logloss(M4, S_train, S_test, train_choice, val_choice)
-# train: 1.216536 
-# validation: 1.166753
+# without CC, with ASC
+M4.3.3 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train,
+                 rpar=c(BZ='u', FP='u', RP='u', PP='u', NV='u'), panel = TRUE, print.level=TRUE)
+summary(M4.3.3)
+compute_logloss(M4.3.3, S_train, S_test, train_choice, val_choice)
 
-M4 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | agea+incomea, data=S_train, 
-             rpar=c(RP='n', PP='n'), panel = TRUE, print.level=TRUE)
-summary(M4)
-compute_logloss(M4, S_train, S_test, train_choice, val_choice)
-# train: 1.216556 
-# validation: 1.166778
+# ========================
+#         NORMAL
+# ========================
+# without ASC
+M4.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train,
+                 rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
+summary(M4.4.1)
+compute_logloss(M4.4.1, S_train, S_test, train_choice, val_choice)
 
+# with ASC
+M4.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train,
+                 rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
+summary(M4.4.2)
+compute_logloss(M4.4.2, S_train, S_test, train_choice, val_choice)
 
-# Mark 3.5
-M5 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | incomea, data=S_train, 
-             rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
-summary(M5)
-compute_logloss(M5, S_train, S_test, train_choice, val_choice)
-# test: 1.216076 
-# validation: 1.169474
+# without CC, with ASC
+M4.4.3 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train,
+                 rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
+summary(M4.4.3)
+compute_logloss(M4.4.3, S_train, S_test, train_choice, val_choice)
 
+# ========================
+#  EXPLORING DEMOGRAPHICS
+# ========================
+# without ASC, age+incomea
+M4.5.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1 | agea+incomea, data=S_train, 
+               rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.1)
+compute_logloss(M4.5.1, S_train, S_test, train_choice, val_choice)
 
-M5 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | incomea, data=S_train, 
-             rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
-summary(M5)
-compute_logloss(M5, S_train, S_test, train_choice, val_choice)
-# test: 1.222034 
-# val: 1.173887
+# with ASC, age+incomea
+M4.5.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | agea+incomea, data=S_train, 
+               rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.2)
+compute_logloss(M4.5.2, S_train, S_test, train_choice, val_choice)
 
-M5 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | incomea, data=S_train, 
-             rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
-summary(M5)
-compute_logloss(M5, S_train, S_test, train_choice, val_choice)
-# test: 1.222051 
-# val: 1.173864
+# with ASC, all demographic variables
+M4.5.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price 
+                 |agea+incomea+segmentind+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+                 data=S_train, rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.3)
+compute_logloss(M4.5.3, S_train, S_test, train_choice, val_choice)
 
-M5 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | incomea, data=S_train, 
-             rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
-summary(M5)
-compute_logloss(M5, S_train, S_test, train_choice, val_choice)
-# test: 1.222051 
-# val: 1.173864
+# without ASC, all demographic variables
+M4.5.3.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+                 |agea+incomea+segmentind+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+                 data=S_train, rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.3.1)
+compute_logloss(M4.5.3.1, S_train, S_test, train_choice, val_choice)
 
+# without ASC, all except segment 
+M4.5.4 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+                   |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+                   data=S_train, rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.4)
+compute_logloss(M4.5.4, S_train, S_test, train_choice, val_choice)
 
+# without ASC, all except segment 
+M4.5.4.1 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+                 |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+                 data=S_train, rpar=c(BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.4.1)
+compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
 
-# M5 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | age+incomea, data=S_train, 
-#              rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), panel = TRUE, print.level=TRUE)
-# summary(M5)
-# compute_logloss(M5, S_train, S_test, train_choice, val_choice)
+# ============================================
+# FEATURE SELECTION FOR RANDOM PARAMETERS
+# ROUND 1
+# ============================================
+M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+                   |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+                   data=S_train, rpar=c(NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.4.1)
+compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(GN='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(BU='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(FA='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(LD='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(FC='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(KA='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(SC='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(TS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
 # 
-# M5 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price | age+incomea, data=S_train, 
-#              rpar=c(BZ='n', FP='n', RP='n', PP='n', NV='n'), reflevel=4, panel = TRUE, print.level=TRUE)
-# summary(M5)
-# compute_logloss(M5, S_train, S_test, train_choice, val_choice)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # Mark 3.2
-# M2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1, data=S_train, 
-#              rpar=c(BZ='n', RP='n', NV='n'), panel = TRUE, print.level=TRUE)
-# summary(M2)
-# compute_logloss(M2, S_train, S_test, train_choice, val_choice)
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(MA='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
 # 
+# M4.5.4.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind, 
+#                    data=S_train, rpar=c(LB='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.1)
+# compute_logloss(M4.5.4.1, S_train, S_test, train_choice, val_choice)
+
+# ============================================
+# FEATURE SELECTION FOR RANDOM PARAMETERS
+# ROUND 2
+# ============================================
+M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+                   |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+                   data=S_train, rpar=c(CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.4.2)
+compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(GN='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(BU='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
 # 
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(FA='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(LD='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
 # 
-# # Mark 3.3
-# M3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='n', RP='n', NV='n'), panel = TRUE, print.level=TRUE)
-# summary(M3)
-# compute_logloss(M3, S_train, S_test, train_choice, val_choice)
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(FC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
 # 
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(KA='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
 # 
-# # Mark 3.4
-# M4 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='n', FP='n', RP='n', NV='n'), panel = TRUE, print.level=TRUE)
-# summary(M4)
-# compute_logloss(M4, S_train, S_test, train_choice, val_choice)
+# M4.5.4.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(SC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.2)
+# compute_logloss(M4.5.4.2, S_train, S_test, train_choice, val_choice)
+
+
+# ============================================
+# FEATURE SELECTION FOR RANDOM PARAMETERS
+# ROUND 3
+# ============================================
+M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+                   |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+                   data=S_train, rpar=c(LB='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+summary(M4.5.4.3)
+compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(GN='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(BU='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(FA='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
 # 
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(LD='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(FC='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
 # 
-# # Mark 3.5
-# M5 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='n', FP='n', RP='n', NV='n'), panel = TRUE, print.level=TRUE)
-# summary(M5)
-# compute_logloss(M5, S_train, S_test, train_choice, val_choice)
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(KA='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(SC='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(TS='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
 # 
-# 
-# # Mark 3.6
-# M6 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='t', FP='t', RP='t', NV='t'), panel = TRUE, print.level=TRUE)
-# summary(M6)
-# compute_logloss(M6, S_train, S_test, train_choice, val_choice)
-# 
-# # Mark 3.7
-# M7 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='u', FP='u', RP='u', NV='u'), panel = TRUE, print.level=TRUE)
-# summary(M7)
-# compute_logloss(M7, S_train, S_test, train_choice, val_choice)
-# 
-# # Mark 3.8
-# M8 <- mlogit(Choice~GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='cn', FP='cn', RP='cn', NV='cn'), panel = TRUE, print.level=TRUE)
-# summary(M8)
-# compute_logloss(M8, S_train, S_test, train_choice, val_choice)
-# 
-# # Mark 3.9
-# M9 <- mlogit(Choice~GN+NS+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
-#              rpar=c(BZ='n', FP='n', RP='cn', NV='cn'), panel = TRUE, print.level=TRUE)
-# summary(M9)
-# compute_logloss(M9, S_train, S_test, train_choice, val_choice)
-# 
-# 
-# 
-# 
-# 
-# 
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(MA='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(AF='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+# M4.5.4.3 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price-1
+#                    |agea+incomea+yearind+milesa+nighta+pparkind+genderind+educind+regionind+Urbind,
+#                    data=S_train, rpar=c(HU='t', CC='t', NS='t',BZ='t', FP='t', RP='t', PP='t', NV='t'), panel = TRUE, print.level=TRUE)
+# summary(M4.5.4.3)
+# compute_logloss(M4.5.4.3, S_train, S_test, train_choice, val_choice)
+
+
+# ============================================
+# PREDICTIONS
+# ============================================
+df_test <- read.csv("test2024.csv")
+df_test$Choice <- 0
+S_test <- dfidx(df_test, shape="wide", choice="Choice", varying = c(4:83), sep="", idx = list(c("No", "Case")))
+test_predictions <- predict(M4.5.4.3, newdata=S_test)
+
+# write.csv(test_predictions, "submission9.csv")
+
+
+
 
 
 
