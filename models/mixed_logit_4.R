@@ -51,6 +51,14 @@ compute_logloss <- function(model, X_train, X_test, choice_train, choice_test, r
   }
 }
 
+compute_accuracy <- function(predictions, actual){
+    # P: prediction dataframe
+    # A: actual dataframe
+    P <- apply(predictions, 1, which.max)
+    A <- apply(actual, 1, which.max)
+    return (sum(A == P) / length(P))
+}
+
 # ========================
 #      MODEL TRAINING
 # ========================
@@ -66,6 +74,13 @@ M4.1.1 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU
              rpar=c(BZ='ln', FP='ln', RP='ln', PP='n', NV='ln'), panel = TRUE, print.level=TRUE)
 summary(M4.1.1)
 compute_logloss(M4.1.1, S_train, S_test, train_choice, val_choice)
+results <- compute_logloss(M4.1.1, S_train, S_test, train_choice, val_choice, returnPreds = TRUE)
+compute_accuracy 
+
+
+
+
+
 
 # with ASC [DOES NOT WORK]
 # M4.1.2 <- mlogit(Choice~CC+GN+NS+BU+FA+LD+BZ+FC+FP+RP+PP+KA+SC+TS+NV+MA+LB+AF+HU+Price, data=S_train, 
