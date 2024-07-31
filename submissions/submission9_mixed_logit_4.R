@@ -387,7 +387,7 @@ df_test$Choice <- 0
 S_test <- dfidx(df_test, shape="wide", choice="Choice", varying = c(4:83), sep="", idx = list(c("No", "Case")))
 test_predictions <- predict(M4.5.4.3, newdata=S_test)
 
-# write.csv(test_predictions, "submission9.csv")
+write.csv(test_predictions, "submission9.csv")
 
 
 
