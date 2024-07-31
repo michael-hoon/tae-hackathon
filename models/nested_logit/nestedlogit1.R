@@ -1,7 +1,8 @@
 # DATA SPLITTING DONE USING TASK NUMBER
 library(mlogit)
 
-safety <- read.csv("~/TAE_Code/tae-hackathon/data/train2024.csv")
+# safety <- read.csv("~/TAE_Code/tae-hackathon/data/train2024.csv")
+safety <- read.csv("train2024.csv")
 safety$Choice <- ifelse(safety$Ch1 == 1, 1, ifelse(safety$Ch2 == 1, 2, ifelse(safety$Ch3 == 1, 3, 4)))
 
 # ========================
@@ -67,15 +68,15 @@ S_train <- mlogit.data(subset(train), shape="wide", choice="Choice", varying =c(
 # )
 
 nests <- list(
-    cooling = c("Ch1", "Ch2", "Ch3"),
-    other = c("Ch4")
+    cooling = c(S_train$Ch1, S_train$Ch1, S_train$Ch1),
+    other = c(S_train$Ch1)
 )
 
 nestlogit <- mlogit(
     formula = Choice ~ CC + GN + NS + BU + FA + LD + BZ + FC + FP + RP + PP + KA + SC + TS + NV + MA + LB + AF + HU + Price | 0,
     data = S_train,
     nests = nests,
-    un.nest.el = TRUE
+    un.nest.el = FALSE, print.level=TRUE
 )
 
 summary(nestlogit)
