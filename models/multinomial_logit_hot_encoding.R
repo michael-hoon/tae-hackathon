@@ -125,6 +125,7 @@ train["Choice"] <- train_data["Choice"]
 
 test_features$No <- seq(21566, 21566+nrow(test_features)-1)
 test <- merge(id_test, test_features, on='No')
+test["Choice"] <- test_data["Choice"]
 
 # 8. Clearing the environment 
 rm(train_data, train_data_tochange, train_features,
@@ -188,32 +189,36 @@ human_test <- subset(test_raw,select = c(agea,nighta,incomea,No))
 train <- merge(train, human_train, on='No')
 test <- merge(test, human_test, on = 'No')
 
+rm(test_human,test_human_to_encode,train_human,train_human_to_encode,dummy,human_test,human_train)
 
 # ------------------------------------------------------------------------
 # PART 3 MODEL BUILDING
 
 # Formatting data for mlogit()
 
-S_train <- dfidx(subset(train, Task <=12), shape="wide", choice="Choice", sep=".",
+S_train <- dfidx(subset(train, Task <=14), shape="wide", choice="Choice", sep=".",
                  varying = c(8:291), idx = c("No", "Case"))
 
-S_val <- dfidx(subset(train, Task > 12), shape="wide", choice="Choice", sep=".",
+S_val <- dfidx(subset(train, Task > 14), shape="wide", choice="Choice", sep=".",
                varying = c(8:291), idx = c("No", "Case"))
 
+S_test <- dfidx(test, shape="wide", choice="Choice", sep=".",
+               varying = c(8:291), idx = c("No", "Case"))
 # ------------------------------------------------------------------------
 # MNL model
-MNL <- mlogit(Choice~AF1+AF2+AF3+BU1+BU2+BU3+BU4+BU5+BU6+BZ1+BZ2+BZ3+CC1+CC2+CC3+
-              FA1+FA2+FC1+FC2+FP1+FP2+FP3+FP4+GN1+GN2+HU1+HU2+KA1+KA2+LB1+LB2+
-              LB3+LB4+LD1+LD2+LD3+MA1+MA2+MA3+MA4+NS1+NS2+NS3+NS4+NS5+NV1+NV2+
-              NV3+PP1+PP2+PP3+RP1+RP2+SC1+SC2+SC3+SC4+TS1+TS2+TS3+Price2+Price3+
-              Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1,
-              data=S_train)
+#MNL <- mlogit(Choice~AF1+AF2+AF3+BU1+BU2+BU3+BU4+BU5+BU6+BZ1+BZ2+BZ3+CC1+CC2+CC3+
+#              FA1+FA2+FC1+FC2+FP1+FP2+FP3+FP4+GN1+GN2+HU1+HU2+KA1+KA2+LB1+LB2+
+#              LB3+LB4+LD1+LD2+LD3+MA1+MA2+MA3+MA4+NS1+NS2+NS3+NS4+NS5+NV1+NV2+
+#              NV3+PP1+PP2+PP3+RP1+RP2+SC1+SC2+SC3+SC4+TS1+TS2+TS3+Price2+Price3+
+#              Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1,
+#              data=S_train)
 
-summary(MNL)
--MNL$logLik/nrow(subset(train, Task <=12)) # 1.193035
-pred_probs <- predict(MNL,newdata = S_val)
-real_probs <- subset(train,Task>12)[4:7]
-compute_logloss(pred_probs, real_probs) #1.141003 
+#summary(MNL)
+#-MNL$logLik/nrow(subset(train, Task <=12)) # 1.193035
+#pred_probs <- predict(MNL,newdata = S_val)
+#real_probs <- subset(train,Task>12)[4:7]
+#compute_logloss(pred_probs, real_probs) # 1.141003 
+#compute_accuracy(pred_probs, real_probs) # 0.5179358
 
 # Insignificant variables: AF3,BU6,FA2,FC2,FP4,GN1,GN2,HU2,LB1,LB2,LB4,LD3,MA2,
 #                          MA4,NS2,NS3,NS5,NV3,PP3,RP2,SC4,TS3
@@ -225,103 +230,125 @@ MNL_2 <- mlogit(Choice~AF1+AF2+BU1+BU2+BU3+BU4+BU5+BZ1+BZ2+BZ3+CC1+CC2+CC3+
                 data=S_train)
 
 summary(MNL_2)
--MNL_2$logLik/nrow(subset(train, Task <=12)) # 1.194075
+-MNL_2$logLik/nrow(subset(train, Task <=14)) # 1.186434
 pred_probs <- predict(MNL_2,newdata = S_val)
-real_probs <- subset(train,Task>12)[4:7]
-compute_logloss(pred_probs, real_probs) # 1.140946 
-
+real_probs <- subset(train,Task>14)[4:7]
+compute_logloss(pred_probs, real_probs) # 1.137829 
+compute_accuracy(pred_probs, real_probs) # 0.518691
 ## NO INSIGNIFICANT VARAIBLES!
 
-
+MNL_2_pred <- predict(MNL_2, newdata = S_test)
+write.csv(MNL_2_pred, "try_MNL_2hot.csv")
 # ------------------------------------------------------------------------
 # MNL model with incomea, nighta, agea
-MNL_a <- mlogit(Choice~AF1+AF2+AF3+BU1+BU2+BU3+BU4+BU5+BU6+BZ1+BZ2+BZ3+CC1+CC2+CC3+
-                FA1+FA2+FC1+FC2+FP1+FP2+FP3+FP4+GN1+GN2+HU1+HU2+KA1+KA2+LB1+LB2+
-                LB3+LB4+LD1+LD2+LD3+MA1+MA2+MA3+MA4+NS1+NS2+NS3+NS4+NS5+NV1+NV2+
-                NV3+PP1+PP2+PP3+RP1+RP2+SC1+SC2+SC3+SC4+TS1+TS2+TS3+Price2+Price3+
-                Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1|
-                incomea+nighta+agea-1,data=S_train)
+#MNL_a <- mlogit(Choice~AF1+AF2+AF3+BU1+BU2+BU3+BU4+BU5+BU6+BZ1+BZ2+BZ3+CC1+CC2+CC3+
+ #               FA1+FA2+FC1+FC2+FP1+FP2+FP3+FP4+GN1+GN2+HU1+HU2+KA1+KA2+LB1+LB2+
+  #              LB3+LB4+LD1+LD2+LD3+MA1+MA2+MA3+MA4+NS1+NS2+NS3+NS4+NS5+NV1+NV2+
+   #             NV3+PP1+PP2+PP3+RP1+RP2+SC1+SC2+SC3+SC4+TS1+TS2+TS3+Price2+Price3+
+    #            Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1|
+     #           incomea+nighta+agea-1,data=S_train)
 
-summary(MNL_a)
--MNL_a$logLik/nrow(subset(train, Task <=12)) # 1.186209
-pred_probs <- predict(MNL_a,newdata = S_val)
-real_probs <- subset(train,Task>12)[4:7]
-compute_logloss(pred_probs, real_probs) #1.137038
+#summary(MNL_a)
+#-MNL_a$logLik/nrow(subset(train, Task <=14)) # 1.186209 / 1.178774
+#pred_probs <- predict(MNL_a,newdata = S_val)
+#real_probs <- subset(train,Task>14)[4:7]
+#compute_logloss(pred_probs, real_probs) # 1.137038 / 1.133131
+#compute_accuracy(pred_probs, real_probs) # 0.5238515 / 0.5263436
 
 # Insignificant variables: AF3,BU6,BZ3,FA2,FC2,FP4,GN2,LB4,MA2,
 #                          MA4,NS2,NS3,NS5,NV3,RP2,SC4,TS3 (HU2,LD3(?))
 
-MNL_b <- mlogit(Choice~AF1+AF2+BU1+BU2+BU3+BU4+BU5+BZ1+BZ2+CC1+CC2+CC3+
-                  FA1+FC1+FP1+FP2+FP3+GN1+HU1+KA1+KA2+LB1+LB2+LB3+
-                  LD1+LD2+MA1+MA3+NS1+NS4+NV1+NV2+PP1+PP2+PP3+RP1+
-                  SC1+SC2+SC3+TS1+TS2+Price2+Price3+Price4+Price5+Price6+
-                  Price7+Price8+Price9+Price10+Price11+Price12-1|
-                  incomea+nighta+agea-1,data=S_train)
+#MNL_b <- mlogit(Choice~AF1+AF2+BU1+BU2+BU3+BU4+BU5+BZ1+BZ2+CC1+CC2+CC3+
+ #                 FA1+FC1+FP1+FP2+FP3+GN1+HU1+KA1+KA2+LB1+LB2+LB3+
+  #                LD1+LD2+MA1+MA3+NS1+NS4+NV1+NV2+PP1+PP2+PP3+RP1+
+   #               SC1+SC2+SC3+TS1+TS2+Price2+Price3+Price4+Price5+Price6+
+    #              Price7+Price8+Price9+Price10+Price11+Price12-1|
+     #             incomea+nighta+agea-1,data=S_train)
 
-summary(MNL_b)
--MNL_b$logLik/nrow(subset(train, Task <=12)) # 1.186897 / 1.187175
-pred_probs <- predict(MNL_b,newdata = S_val)
-real_probs <- subset(train,Task>12)[4:7]
-compute_logloss(pred_probs, real_probs) #1.137345 / 1.137148
-
+#summary(MNL_b)
+#-MNL_b$logLik/nrow(subset(train, Task <=14)) # 1.186897 / 1.187175 / 1.179817
+#pred_probs <- predict(MNL_b,newdata = S_val)
+#real_probs <- subset(train,Task>14)[4:7]
+#compute_logloss(pred_probs, real_probs) # 1.137345 / 1.137148 / 1.133029
+#compute_accuracy(pred_probs, real_probs) # 0.5218376 / 0.5277533
 
 # ------------------------------------------------------------------------
 # MNL model with encoded human features
-MNL_human <- mlogit(Choice~AF1+AF2+AF3+BU1+BU2+BU3+BU4+BU5+BU6+BZ1+BZ2+BZ3+CC1+CC2+CC3+
-              FA1+FA2+FC1+FC2+FP1+FP2+FP3+FP4+GN1+GN2+HU1+HU2+KA1+KA2+LB1+LB2+
-              LB3+LB4+LD1+LD2+LD3+MA1+MA2+MA3+MA4+NS1+NS2+NS3+NS4+NS5+NV1+NV2+
-              NV3+PP1+PP2+PP3+RP1+RP2+SC1+SC2+SC3+SC4+TS1+TS2+TS3+Price2+Price3+
-              Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1|
-              Urbind.2+Urbind.3+ageind.2+ageind.3+ageind.4+ageind.5+educind.2+
-              educind.3+educind.4+educind.5+educind.6+genderind.2+incomeind.2+
-              incomeind.3+incomeind.4+incomeind.5+incomeind.6+incomeind.7+
-              incomeind.8+incomeind.9+incomeind.10+incomeind.11+incomeind.12+
-              incomeind.13+incomeind.14+incomeind.15+incomeind.16+incomeind.17+
-              incomeind.18+incomeind.19+incomeind.21+incomeind.22+incomeind.24+
-              incomeind.26+incomeind.27+incomeind.28+milesind.2+milesind.3+
-              milesind.4+milesind.5+milesind.6+milesind.7+milesind.8+milesind.9+
-              nightind.2+nightind.3+nightind.4+nightind.5+nightind.6+nightind.7+
-              nightind.8+nightind.9+nightind.10+pparkind.2+pparkind.3+pparkind.4+
-              pparkind.5+regionind.2+regionind.3+regionind.4+regionind.5+
-              segmentind.2+segmentind.3+segmentind.4+segmentind.5+segmentind.6+
-              yearind.2+yearind.3+yearind.4+yearind.5+yearind.6+yearind.7-1, data=S_train)
+#MNL_human <- mlogit(Choice~AF1+AF2+AF3+BU1+BU2+BU3+BU4+BU5+BU6+BZ1+BZ2+BZ3+CC1+CC2+CC3+
+ #             FA1+FA2+FC1+FC2+FP1+FP2+FP3+FP4+GN1+GN2+HU1+HU2+KA1+KA2+LB1+LB2+
+ #             LB3+LB4+LD1+LD2+LD3+MA1+MA2+MA3+MA4+NS1+NS2+NS3+NS4+NS5+NV1+NV2+
+  #            NV3+PP1+PP2+PP3+RP1+RP2+SC1+SC2+SC3+SC4+TS1+TS2+TS3+Price2+Price3+
+   #           Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1|
+    #          Urbind.2+Urbind.3+ageind.2+ageind.3+ageind.4+ageind.5+educind.2+
+     #         educind.3+educind.4+educind.5+educind.6+genderind.2+incomeind.2+
+      #        incomeind.8+incomeind.9+incomeind.10+incomeind.11+incomeind.12+
+      #        incomeind.13+incomeind.14+incomeind.15+incomeind.16+incomeind.17+
+      #       incomeind.3+incomeind.4+incomeind.5+incomeind.6+incomeind.7+
+      #        incomeind.18+incomeind.19+incomeind.21+incomeind.22+incomeind.24+
+      #        incomeind.26+incomeind.27+incomeind.28+milesind.2+milesind.3+
+      #        milesind.4+milesind.5+milesind.6+milesind.7+milesind.8+milesind.9+
+      #        nightind.2+nightind.3+nightind.4+nightind.5+nightind.6+nightind.7+
+      #        nightind.8+nightind.9+nightind.10+pparkind.2+pparkind.3+pparkind.4+
+      #        pparkind.5+regionind.2+regionind.3+regionind.4+regionind.5+
+      #        segmentind.2+segmentind.3+segmentind.4+segmentind.5+segmentind.6+
+      #        yearind.2+yearind.3+yearind.4+yearind.5+yearind.6+yearind.7-1, data=S_train)
 
-summary(MNL_human)
--MNL_human $logLik/nrow(subset(train, Task <=12)) # 1.152457
-pred_probs <- predict(MNL_human, newdata = S_val)
-real_probs <- subset(train,Task>12)[4:7]
-compute_logloss(pred_probs, real_probs) # 1.116969
+#summary(MNL_human)
+#-MNL_human $logLik/nrow(subset(train, Task <=12)) # 1.152457
+#pred_probs <- predict(MNL_human, newdata = S_val)
+#real_probs <- subset(train,Task>12)[4:7]
+#compute_logloss(pred_probs, real_probs) # 1.116969
+#compute_accuracy(pred_probs, real_probs) # 0.535557
 
-# INSIGNFICANT VARIABLES: 
+# INSIGNFICANT VARIABLES: AF3,BU6,BZ3,FA2,FC2,FP4,GN2,HU2,LB1,LB2,LB4,
+# LD3,MA2,MA4,NS2,NS3,NS5,NV3,PP3,RP2,SC4,TS3
 # ------------------------------------------------------------------------
 
+#MNL_human2 <- mlogit(Choice~AF1+AF2+BU1+BU2+BU3+BU4+BU5+BZ1+BZ2+CC1+CC2+CC3+
+#                         +FA1+FC1+FP1+FP2+FP3+GN1+HU1+KA1+KA2+
+#                         +LB3+LD1+LD2+MA1+MA3+NS1+NS4+NV1+NV2+
+#                         +PP1+PP2+RP1+SC1+SC2+SC3+TS1+TS2+Price2+Price3+
+#                         +Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1|
+#                         +Urbind.3+ageind.2+ageind.3+ageind.4+ageind.5+
+#                         +educind.2+genderind.2+incomeind.4+incomeind.8+incomeind.13+incomeind.14+incomeind.16+
+#                         +incomeind.19+incomeind.28+milesind.2+milesind.3+milesind.4+nightind.5+nightind.7+
+#                         +nightind.8+nightind.10+pparkind.2+pparkind.3+pparkind.4+pparkind.5+regionind.2+
+#                         +regionind.3+regionind.4+segmentind.3+segmentind.5+segmentind.6+yearind.3+
+#                         +yearind.4-1, data=S_train)
 
+#summary(MNL_human2)
+#-MNL_human2 $logLik/nrow(subset(train, Task <=12)) # 1.161504
+#pred_probs <- predict(MNL_human2, newdata = S_val)
+#real_probs <- subset(train,Task>12)[4:7]
+#compute_logloss(pred_probs, real_probs) # 1.116402
+#compute_accuracy(pred_probs, real_probs) #  0.5324103
 
-
+#final_pred <- predict(MNL_human2, newdata = S_test)
+#write.csv(final_pred, "0108submission_MNL1hot.csv")
 
 # ------------------------------------------------------------------------
 # Mixed logit model karthik1 BAD!
-M <- mlogit(Choice~CC1+CC2+CC3+NS1+NS4+BU1+BU2+BU3+BU4+BU5+FA1+LD1+LD2+BZ1+BZ2+
-              FC1+FP1+FP2+FP3+RP1-1,
-              rpar = c(BZ1='n',BZ2='n',FP1='n',FP2='n',FP3='n',
-                       RP1='n'), data=S_train)
+#M <- mlogit(Choice~CC1+CC2+CC3+NS1+NS4+BU1+BU2+BU3+BU4+BU5+FA1+LD1+LD2+BZ1+BZ2+
+#              FC1+FP1+FP2+FP3+RP1-1,
+#              rpar = c(BZ1='n',BZ2='n',FP1='n',FP2='n',FP3='n',
+#                       RP1='n'), data=S_train)
 # ------------------------------------------------------------------------
 # Mixed logit with karthik
-M <- mlogit(Choice~PP1+PP2+KA1+KA2+SC1+SC2+SC3+TS1+TS2+TS3+NV1+NV2+MA3+AF1+AF2+
-                   HU1+Price2+Price3+Price4+Price5+Price6+Price7+Price8+Price9+
-                   Price10+Price11+Price12-1, 
-            rpar=c(BZ='n', FP='n', RP='n',PP='n',NV='n'), data = S_train)
+#M <- mlogit(Choice~PP1+PP2+KA1+KA2+SC1+SC2+SC3+TS1+TS2+TS3+NV1+NV2+MA3+AF1+AF2+
+#                   HU1+Price2+Price3+Price4+Price5+Price6+Price7+Price8+Price9+
+#                   Price10+Price11+Price12-1, 
+#            rpar=c(BZ='n', FP='n', RP='n',PP='n',NV='n'), data = S_train)
 # ------------------------------------------------------------------------
 
-summary(M)
--M$logLik/nrow(subset(train, Task <=12))
+#summary(M)
+#-M$logLik/nrow(subset(train, Task <=12))
 
 
-pred_probs <- predict(M,newdata = S_val)
+#pred_probs <- predict(M,newdata = S_val)
 
-real_probs <- subset(train,Task>12)[4:7]
+#real_probs <- subset(train,Task>12)[4:7]
 
-compute_logloss(pred_probs, real_probs)
+#compute_logloss(pred_probs, real_probs)
 
 # ------------------------------------------------------------------------
 
@@ -341,8 +368,29 @@ compute_logloss <- function(P, choice){
 }
 
 
+# Compute accuracy
+compute_accuracy <- function(P, choice){
+  # P: predicted choices
+  # choice: actual choices
+  # Determine the predicted choice by taking the column index of the max probability in each row
+  predicted_choice <- apply(P, 1, which.max)
+  
+  # Determine the actual choice by taking the column index of the max probability in each row
+  actual_choice <- apply(choice, 1, which.max)
+  
+  # Compute the confusion matrix
+  confusion_matrix <- table(Predicted = predicted_choice, Actual = actual_choice)
+  
+  (sum(diag(confusion_matrix)))/(sum((confusion_matrix)))
+}
 
-
+compute_accuracy <- function(predictions, actual){
+  # P: prediction dataframe
+  # A: actual dataframe
+  P <- apply(predictions, 1, which.max)
+  A <- apply(actual, 1, which.max)
+  return (sum(A == P) / length(P))
+}
 
 
 
