@@ -113,6 +113,46 @@ XGB_precision_4 <- compute_precision(4, CM_xgb)
 XGB_precision <- c(XGB_precision_1, XGB_precision_2, XGB_precision_3, XGB_precision_4)
 XGB_precision
 
+compute_TP <- function(class, CM){
+    return (CM[class,class])
+}
+compute_FP <- function(class, CM){
+    
+}
+
+
+xgb_TP <- CM_xgb[1,1]+CM_xgb[2,2]+CM_xgb[3,3]+CM_xgb[4,4]
+xgb_FN <- (CM_xgb[2,1]+CM_xgb[3,1]+CM_xgb[4,1]
+           +CM_xgb[1,2]+CM_xgb[3,2]+CM_xgb[4,2]
+           +CM_xgb[1,3]+CM_xgb[2,3]+CM_xgb[4,3]
+           +CM_xgb[1,4]+CM_xgb[2,4]+CM_xgb[3,4])
+xgb_FP <- (CM_xgb[1,2]+CM_xgb[1,3]+CM_xgb[1,4]
+           +CM_xgb[2,1]+CM_xgb[2,3]+CM_xgb[2,4]
+           +CM_xgb[3,1]+CM_xgb[3,2]+CM_xgb[3,4]
+           +CM_xgb[4,1]+CM_xgb[4,2]+CM_xgb[4,3])
+xgb_TN <- 
+xgb_TPR <- (xgb_TP) / (xgb_FN + xgb_TP) 
+xgb_TPR
+xgb_FNR <- (xgb_FN) / (xgb_FN + xgb_TP) 
+
+
+# preds_train_xgb$correct <- ifelse(preds_train_xgb$PredictedChoice == y_train, 1, 0) 
+# preds_train_xgb$ActualChoice <- y_train
+# wrong_predictions <- subset(preds_train_xgb, correct == 0)
+# table(wrong_predictions$PredictedChoice, wrong_predictions$ActualChoice)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
