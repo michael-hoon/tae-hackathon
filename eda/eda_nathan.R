@@ -113,11 +113,19 @@ ggpairs(df_selected,
             alpha=0.5))
 
 
+# SCATTERPLOTS PER CHOICE
+features <- c("GN1", "GN2", "GN3", "GN4", "Choice")
+df_selected <- df_train[, features]
+df_selected <- subset(df_selected, Choice == 1)
+# ggpairs(df_selected, columns = 1:(length(df_selected)-1), 
+#         upper = list(continuous = custom_jitter), 
+#         lower = list(continuous = custom_jitter), 
+#         diag = list(continuous = wrap("densityDiag", alpha = 0.5)))
 
-
-
-
-
+table(df_selected$GN1)
+table(df_selected$GN2)
+table(df_selected$GN3)
+table(df_selected$GN4)
 
 
 
