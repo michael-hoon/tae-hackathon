@@ -499,6 +499,10 @@ train_choice <- subset(raw_train, select = c("Ch1", "Ch2", "Ch3", "Ch4"))
 
 set.seed(1234)
 split <- sample(1:nrow(raw_train), 0.8*nrow(raw_train))
+# We now use a different data splitting technique, which is based on customers.
+# end_index <- ceiling(0.8*nrow(raw_train))
+# split <- (1:end_index)
+
 train_ensemble_XGB <- XGB[split,]
 train_ensemble_MNL <- MNL[split,]
 train_ensemble_RF <- RF[split,]
@@ -508,6 +512,7 @@ test_ensemble_RF <- RF[-split,]
 
 train_ensemble_choice <- train_choice[split,]
 test_ensemble_choice <- train_choice[-split,]
+
 
 
 # SOFT VOTING
@@ -578,6 +583,12 @@ plot(df_results$weight1, df_results$train_logloss)
 plot(df_results$weight2, df_results$train_logloss)
 plot(df_results$weight3, df_results$train_logloss)
 
+plot(df_results$weight1, df_results$train_accuracy)
+plot(df_results$weight2, df_results$train_accuracy)
+plot(df_results$weight3, df_results$train_accuracy)
+pairs(subset(df_results, select=c(weight1, weight2, weight3, train_logloss, train_accuracy)))
+
+# Analysis 1
 df1 <- subset(df_results, weight1 >= weight2)
 df1 <- subset(df1, weight3 >= weight2)
 df1 <- subset(df1, weight1 >= weight3)
@@ -587,14 +598,76 @@ plot(df1$weight1, df1$train_logloss)
 plot(df1$weight2, df1$train_logloss)
 plot(df1$weight3, df1$train_logloss)
 
+# Analysis 2
+df2 <- subset(df_results, train_logloss >= 0.8)
+df2$overfit <- df2$train_logloss - df2$test_logloss
+plot(df2$train_logloss, df2$test_logloss)
+plot(df2$train_logloss, df2$overfit)
+plot(df2$weight1, df2$overfit)
+plot(df2$weight2, df2$overfit)
+plot(df2$weight3, df2$overfit)
+
 df_pairplot = subset(df1, select=c(weight1, weight2, weight3, train_logloss, train_accuracy))
 pairs(df_pairplot)
-
 
 results_weight1 <- subset(results_weight1, weight1 <= 0.55)
 plot(results_weight1$weight1, results_weight1$train_logloss)
 plot(results_weight1$weight2, results_weight1$train_logloss)
 plot(results_weight1$weight3, results_weight1$train_logloss)
+
+# Analysis 3
+df_ <- subset(df_results, select=c(weight1, weight2, weight3, train_logloss, train_accuracy))
+df_ <- subset(df_, weight2 <= 0.11)
+df_ <- subset(df_, weight2 > 0)
+df_ <- subset(df_, train_accuracy < 0.85)
+pairs(df_)
+
+
+# Sub-simulation
+run_soft_voting <- function(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights){
+    train_predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
+                                     weights = weights)
+    test_predictions <- soft_voting(test_ensemble_XGB, test_ensemble_MNL, test_ensemble_RF, 
+                                    weights = weights)
+    
+    train_logloss <- compute_logloss(train_predictions, train_ensemble_choice)
+    train_accuracy <- compute_accuracy(train_predictions, train_ensemble_choice)
+    test_logloss <- compute_logloss(test_predictions, test_ensemble_choice)
+    test_accuracy <- compute_accuracy(test_predictions, test_ensemble_choice)
+    cat("train_logloss: ", train_logloss, "\n")
+    cat("test_logloss: ", test_logloss, "\n")
+    cat("overfitting: ", train_logloss - test_logloss, "\n")
+    cat("train_accuracy: ", train_accuracy, "\n")
+    cat("test_accuracy: ", test_accuracy, "\n")
+}
+
+weights <- c(3*0.5, 3*0.2, 3*0.3)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(3*0.8, 3*0.1, 3*0.1)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(3*0.4, 3*0.1, 3*0.5)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(3*0.4, 3*0.4, 3*0.2)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(3*0.5, 3*0.3, 3*0.2)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+
+weights <- c(3*0.5, 3*0.1, 3*0.4)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(3*0.4, 3*0.1, 3*0.5)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+
+for (x in seq(0, 0.5, by=0.01)){
+    weight1 = 0.5
+    weight2 = x 
+    weight3 = 3 - weight1 - weight2
+    
+}
+
+                        
+
+
+
 
 # Based on this analysis, we choose:
 weight_XGB <- 0.5*3
