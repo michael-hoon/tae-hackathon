@@ -1,4 +1,4 @@
-setwd("C:\\SUTD\\40.016 TAE - The Analytics Edge\\000 - COMPETITION\\models\\ensemble")
+setwd("C:\\SUTD\\40.016 TAE - The Analytics Edge\\000 - COMPETITION\\models\\ensemble\\ensemble_2")
 # ==================================================================================
 #                               THE GRAND ENSEMBLE
 # ==================================================================================
@@ -339,7 +339,7 @@ MNL_2 <- mlogit(Choice~AF1+AF2+BU1+BU2+BU3+BU4+BU5+BZ1+BZ2+BZ3+CC1+CC2+CC3+
                     FA1+FC1+FP1+FP2+FP3+HU1+KA1+KA2+LB3+LD1+LD2+MA1+MA3+NS1+
                     NS4+NV1+NV2+PP1+PP2+RP1+SC1+SC2+SC3+TS1+TS2+Price2+Price3+
                     Price4+Price5+Price6+Price7+Price8+Price9+Price10+Price11+Price12-1,
-                    data=S_train)
+                data=S_train)
 
 # Making Predictions to train the Ensemble
 preds_train_MNL <- predict(MNL_2, newdata = S_everything)
@@ -410,7 +410,7 @@ testprobs <- actual_probs[-trainingIndex,]
 
 # MODEL TRAINING
 set.seed(seed)
-RF <- randomForest(as.factor(Choice) ~ ., data = trainingSet, mtry=18, importance=TRUE, ntree = 500) 
+RF <- randomForest(as.factor(Choice) ~ ., data = trainingSet, mtry=16, importance=TRUE, ntree = 500) 
 
 # MAKE PREDICTIONS
 val_pred <- predict(RF, testSet, type="prob")
@@ -516,10 +516,10 @@ soft_voting <- function(pred1, pred2, pred3, weights=c(0.5, 0.5, 0)){
                               Ch2 = numeric(nrow(pred1)),
                               Ch3 = numeric(nrow(pred1)),
                               Ch4 = numeric(nrow(pred1)))
-    predictions$Ch1 <- pred1$Ch1*weights[1] + pred2$Ch1*weights[2] + pred3$Ch1*weights[3]
-    predictions$Ch2 <- pred1$Ch2*weights[1] + pred2$Ch2*weights[2] + pred3$Ch2*weights[3]
-    predictions$Ch3 <- pred1$Ch3*weights[1] + pred2$Ch3*weights[2] + pred3$Ch3*weights[3]
-    predictions$Ch4 <- pred1$Ch4*weights[1] + pred2$Ch4*weights[2] + pred3$Ch4*weights[3]
+    predictions$Ch1 <- (pred1$Ch1**weights[1] * pred2$Ch1**weights[2] * pred3$Ch1**weights[3])**(1/3)
+    predictions$Ch2 <- (pred1$Ch2**weights[1] * pred2$Ch2**weights[2] * pred3$Ch2**weights[3])**(1/3)
+    predictions$Ch3 <- (pred1$Ch3**weights[1] * pred2$Ch3**weights[2] * pred3$Ch3**weights[3])**(1/3)
+    predictions$Ch4 <- (pred1$Ch4**weights[1] * pred2$Ch4**weights[2] * pred3$Ch4**weights[3])**(1/3)
     
     row_sums <- rowSums(predictions)
     predictions <- predictions / row_sums
@@ -529,7 +529,7 @@ soft_voting <- function(pred1, pred2, pred3, weights=c(0.5, 0.5, 0)){
 
 # SAMPLE IMPLEMENTATION
 predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
-                           weights=c(0.5, 0.3, 0.2))
+                           weights=c(1.5, 1.3, 0.2))
 predictions
 logloss <- compute_logloss(predictions, train_ensemble_choice)
 logloss
@@ -542,17 +542,19 @@ df_results <- data.frame(weight1 = numeric(),
                          train_logloss = numeric(), test_logloss = numeric(),
                          train_accuracy = numeric(), test_accuracy = numeric())
 
+        
+
 # SIMULATION
 iteration <- 0
-for (weight1 in seq(0, 0.99, by=0.01)){
-    for (weight2 in seq(0, 1-weight1, by=0.01)){
-        weight3 <- 1 - weight1 - weight2
-
+for (weight1 in seq(0, 2.99, by=0.03)){
+    for (weight2 in seq(0, 3-weight1, by=0.03)){
+        weight3 <- 3 - weight1 - weight2
+        
         train_predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
                                          weights = c(weight1, weight2, weight3))
         train_logloss <- compute_logloss(train_predictions, train_ensemble_choice)
         train_accuracy <- compute_accuracy(train_predictions, train_ensemble_choice)
-
+        
         test_predictions <- soft_voting(test_ensemble_XGB, test_ensemble_MNL, test_ensemble_RF, 
                                         weights = c(weight1, weight2, weight3))
         test_logloss <- compute_logloss(test_predictions, test_ensemble_choice)
@@ -566,26 +568,38 @@ for (weight1 in seq(0, 0.99, by=0.01)){
         cat("Iteration ", iteration, "\n")
     }
 }
-    
+
 plot(df_results$train_logloss, df_results$test_logloss)
 plot(df_results$train_logloss, df_results$train_accuracy)
 plot(df_results$test_logloss, df_results$test_accuracy)
-
 plot(df_results$train_accuracy, df_results$train_logloss)
 
 plot(df_results$weight1, df_results$train_logloss)
 plot(df_results$weight2, df_results$train_logloss)
 plot(df_results$weight3, df_results$train_logloss)
 
-results_weight1 <- subset(df_results, weight1 >= 0.5)
+df1 <- subset(df_results, weight1 >= weight2)
+df1 <- subset(df1, weight3 >= weight2)
+df1 <- subset(df1, weight1 >= weight3)
+df1 <- subset(df1, train_accuracy <= 0.85)
+plot(df1$train_accuracy, df1$train_logloss)
+plot(df1$weight1, df1$train_logloss)
+plot(df1$weight2, df1$train_logloss)
+plot(df1$weight3, df1$train_logloss)
+
+df_pairplot = subset(df1, select=c(weight1, weight2, weight3, train_logloss, train_accuracy))
+pairs(df_pairplot)
+
+
 results_weight1 <- subset(results_weight1, weight1 <= 0.55)
+plot(results_weight1$weight1, results_weight1$train_logloss)
 plot(results_weight1$weight2, results_weight1$train_logloss)
 plot(results_weight1$weight3, results_weight1$train_logloss)
 
 # Based on this analysis, we choose:
-weight_XGB <- 0.5
-weight_MNL <- 0.2
-weight_RF <- 0.3
+weight_XGB <- 0.5*3
+weight_MNL <- 0.2*3
+weight_RF <- 0.3*3
 
 train_predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
                                  weights = c(weight_XGB, weight_MNL, weight_RF))
@@ -605,24 +619,24 @@ test_accuracy
 # ==============================================================================
 # MAKING SUBMISSION PREDICTION
 # ==============================================================================
-XGB_probabilities <- read.csv("InputEnsemble_XGB.csv") 
-MNL_probabilities <- read.csv("InputEnsemble_MNL.csv") 
-RF_probabilities <- read.csv("InputEnsemble_RF.csv") 
+XGB_probabilities <- read.csv("InputEnsemble_XGB.csv")
+MNL_probabilities <- read.csv("InputEnsemble_MNL.csv")
+RF_probabilities <- read.csv("InputEnsemble_RF.csv")
 
 test2024 <- read.csv("test2024.csv")
 submission_13 <- subset(test2024, select=c(No))
-submission_probabilities <- soft_voting(XGB_probabilities, MNL_probabilities, RF_probabilities, 
-                             weights=c(weight_XGB, weight_MNL, weight_RF))
+submission_probabilities <- soft_voting(XGB_probabilities, MNL_probabilities, RF_probabilities,
+                                        weights=c(weight_XGB, weight_MNL, weight_RF))
 submission_13$Ch1 <- submission_probabilities$Ch1
 submission_13$Ch2 <- submission_probabilities$Ch2
 submission_13$Ch3 <- submission_probabilities$Ch3
 submission_13$Ch4 <- submission_probabilities$Ch4
 
-write.csv(submission_13, "0802_submission13_ENSEMBLE_1.csv", row.names = FALSE)
+write.csv(submission_13, "0803_ENSEMBLE_3.csv", row.names = FALSE)
 
-
-
-
+# 
+# 
+# 
 
 
 
