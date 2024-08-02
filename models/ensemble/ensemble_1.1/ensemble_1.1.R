@@ -498,7 +498,10 @@ raw_train$Choice <- ifelse(raw_train$Ch1 == 1, 1, ifelse(raw_train$Ch2 == 1, 2, 
 train_choice <- subset(raw_train, select = c("Ch1", "Ch2", "Ch3", "Ch4"))
 
 set.seed(1234)
-split <- sample(1:nrow(raw_train), 0.8*nrow(raw_train))
+# split <- sample(1:nrow(raw_train), 0.8*nrow(raw_train))
+end_index <- ceiling(0.8*nrow(raw_train))
+split <- (1:end_index)
+
 train_ensemble_XGB <- XGB[split,]
 train_ensemble_MNL <- MNL[split,]
 train_ensemble_RF <- RF[split,]
@@ -530,7 +533,7 @@ soft_voting <- function(pred1, pred2, pred3, weights=c(0.5, 0.5, 0)){
 # SAMPLE IMPLEMENTATION
 predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
                            weights=c(0.4, 0.2, 0.4))
-predictions
+# predictions
 logloss <- compute_logloss(predictions, train_ensemble_choice)
 logloss
 accuracy <- compute_accuracy(predictions, train_ensemble_choice)
@@ -586,10 +589,48 @@ plot(results_weight1$weight1, results_weight1$train_logloss)
 plot(results_weight1$weight2, results_weight1$train_logloss)
 plot(results_weight1$weight3, results_weight1$train_logloss)
 
+
+# ANOTHER SIMULATION
+run_soft_voting <- function(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights){
+    train_predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
+                                     weights = weights)
+    test_predictions <- soft_voting(test_ensemble_XGB, test_ensemble_MNL, test_ensemble_RF, 
+                                    weights = weights)
+    
+    train_logloss <- compute_logloss(train_predictions, train_ensemble_choice)
+    train_accuracy <- compute_accuracy(train_predictions, train_ensemble_choice)
+    test_logloss <- compute_logloss(test_predictions, test_ensemble_choice)
+    test_accuracy <- compute_accuracy(test_predictions, test_ensemble_choice)
+    cat("train_logloss: ", train_logloss, "\n")
+    cat("test_logloss: ", test_logloss, "\n")
+    cat("overfitting: ", train_logloss - test_logloss, "\n")
+    cat("train_accuracy: ", train_accuracy, "\n")
+    cat("test_accuracy: ", test_accuracy, "\n")
+}
+
+weights <- c(0.5, 0.2, 0.3)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(0.8, 0.1, 0.1)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(0.4, 0.1, 0.5)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(0.4, 0.4, 0.2)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+weights <- c(0.5, 0.3, 0.2)
+run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
+
+
+
+
+
+
+
+
+
 # Based on this analysis, we choose:
-weight_XGB <- 0.6
+weight_XGB <- 0.5
 weight_MNL <- 0.2
-weight_RF <- 0.2
+weight_RF <- 0.3
 
 train_predictions <- soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, 
                                  weights = c(weight_XGB, weight_MNL, weight_RF))
