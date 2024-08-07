@@ -1,2 +1,0 @@
-No documentation for ‘apollo_beta’ in specified packages and libraries:
-you could try ‘??apollo_beta’
