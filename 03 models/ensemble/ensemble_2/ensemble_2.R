@@ -610,7 +610,7 @@ plot(df2$weight3, df2$overfit)
 df_pairplot = subset(df1, select=c(weight1, weight2, weight3, train_logloss, train_accuracy))
 pairs(df_pairplot)
 
-results_weight1 <- subset(results_weight1, weight1 <= 0.55)
+results_weight1 <- subset(df_results, weight1 <= 0.55)
 plot(results_weight1$weight1, results_weight1$train_logloss)
 plot(results_weight1$weight2, results_weight1$train_logloss)
 plot(results_weight1$weight3, results_weight1$train_logloss)
