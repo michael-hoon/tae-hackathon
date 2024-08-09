@@ -566,7 +566,7 @@ for (weight1 in seq(0, 2.99, by=0.03)){
 }
 
 write.csv(df_results, "ensemble_analysis.csv") # to save results
-# df_results <- read.csv("ensemble_analysis.csv)
+# df_results <- read.csv("ensemble_analysis.csv) 
 
 plot(df_results$train_logloss, df_results$test_logloss, 
      xlab = "Train Logloss", ylab = "Test Logloss", 
@@ -631,7 +631,6 @@ plot(results_weight1$weight2, results_weight1$train_logloss)
 plot(results_weight1$weight3, results_weight1$train_logloss)
 
 
-
 # --------------
 #  SIMULATION 2
 # --------------
@@ -669,41 +668,27 @@ weights <- c(3*0.4, 3*0.1, 3*0.5)
 run_soft_voting(train_ensemble_XGB, train_ensemble_MNL, train_ensemble_RF, weights = weights)
 
 
-
-
-
-
-
-
-
-
-
 # ==============================================================================
 # MAKING SUBMISSION PREDICTION
 # ==============================================================================
-XGB_probabilities <- read.csv("test2024_MNLpredictions.csv")
-MNL_probabilities <- read.csv("test2024_RFpredictions.csv")
-RF_probabilities <- read.csv("test2024_XGBpredictions.csv")
+XGB_probabilities <- read.csv("test2024_XGBpredictions.csv")
+MNL_probabilities <- read.csv("test2024_MNLpredictions.csv")
+RF_probabilities <- read.csv("test2024_RFpredictions.csv")
 
-weight_XGB <- 0.8*3
-weight_MNL <- 0.1*3
-weight_RF <- 0.1*3
+weight_XGB <- 0.5*3
+weight_MNL <- 0.2*3
+weight_RF <- 0.3*3
 
 test2024 <- read.csv("test2024.csv")
-submission_15 <- subset(test2024, select=c(No))
+submission_14 <- subset(test2024, select=c(No))
 submission_probabilities <- soft_voting(XGB_probabilities, MNL_probabilities, RF_probabilities,
                                         weights=c(weight_XGB, weight_MNL, weight_RF))
-submission_15$Ch1 <- submission_probabilities$Ch1
-submission_15$Ch2 <- submission_probabilities$Ch2
-submission_15$Ch3 <- submission_probabilities$Ch3
-submission_15$Ch4 <- submission_probabilities$Ch4
+submission_14$Ch1 <- submission_probabilities$Ch1
+submission_14$Ch2 <- submission_probabilities$Ch2
+submission_14$Ch3 <- submission_probabilities$Ch3
+submission_14$Ch4 <- submission_probabilities$Ch4
 
-write.csv(submission_15, "0803_ENSEMBLE_3.csv", row.names = FALSE)
-
-
-
-
-
+write.csv(submission_14, "FinalSubmission.csv", row.names = FALSE)
 
 
 
